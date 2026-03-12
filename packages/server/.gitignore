@@ -1,0 +1,5 @@
+sample_data
+.env
+coverage
+node_modules
+.vscode
