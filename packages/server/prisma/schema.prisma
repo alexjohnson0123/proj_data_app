@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DataType {
+  string
+  number
+  date
+}
+
+model ProjectType {
+  id            Int                   @id @default(autoincrement())
+  name          String                @unique
+  attributeDefs AttributeDefinition[]
+  projects      Project[]
+}
+
+model AttributeDefinition {
+  id              Int              @id @default(autoincrement())
+  label           String
+  dataType        DataType
+  required        Boolean          @default(false)
+  projectTypeId   Int
+  projectType     ProjectType      @relation(fields: [projectTypeId], references: [id])
+  attributeValues AttributeValue[]
+
+  @@unique([projectTypeId, label])
+}
+
+// Complete schema when real Workday data is visible
+model Project {
+  id              Int              @id @default(autoincrement())
+  workdayId       String           @unique
+  name            String?
+  client          String?
+  sphere          String?
+  description     String?
+  startDate       DateTime?
+  projectTypeId   Int?
+  projectType     ProjectType?     @relation(fields: [projectTypeId], references: [id])
+  attributeValues AttributeValue[]
+}
+
+model AttributeValue {
+  id                    Int                 @id @default(autoincrement())
+  projectId             Int
+  project               Project             @relation(fields: [projectId], references: [id])
+  attributeDefinitionId Int
+  attributeDef          AttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
+  valueString           String?
+  valueNumber           Float?
+  valueDate             DateTime?
+
+  @@unique([projectId, attributeDefinitionId])
+}

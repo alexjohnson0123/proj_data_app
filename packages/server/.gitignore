@@ -3,3 +3,4 @@ sample_data
 coverage
 node_modules
 .vscode
+/generated/prisma
