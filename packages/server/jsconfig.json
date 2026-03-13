@@ -6,6 +6,7 @@
     },
     "include": [
         "tests/**/*",
-        "src/**/*"
+        "src/**/*",
+        "../../depreciated/app.test.js"
     ]
 }

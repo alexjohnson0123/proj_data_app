@@ -1,7 +1,7 @@
 import request from 'supertest'
-import createApp from '../src/app.js'
-import { DBConnect, DBClose, DBClear } from '../src/start-database.js'
-import { Project, ProjectTypeDefinition } from '../src/models.js'
+import createApp from '../packages/server/src/app.js'
+import { DBConnect, DBClose, DBClear } from '../packages/server/src/start-database.js'
+import { Project, ProjectTypeDefinition } from '../packages/server/src/models.js'
 import dotenv from 'dotenv';
 
 const app = createApp((req, res, next) => {

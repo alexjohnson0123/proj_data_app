@@ -7,7 +7,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test": "vitest run",
     "start": "tsx index.ts"
   },
   "devDependencies": {
@@ -16,13 +16,16 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
+    "@types/pg": "^8.11.11",
     "better-sqlite3": "^12.6.2",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",
     "supertest": "^7.2.2",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.0"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -32,10 +35,8 @@
     "mongodb": "7.1",
     "mongoose": "^9.2.1",
     "node-cron": "^4.2.1",
+    "pg": "^8.20.0",
     "prisma": "^7.5.0",
     "zod": "^4.3.6"
-  },
-  "jest": {
-    "transform": {}
   }
 }

@@ -1,27 +1,31 @@
 import express, { RequestHandler } from 'express'
 import cors from 'cors'
-import projectsRouter from './routes/projects.js'
-import projectTypesRouter from './routes/project-types.js'
+import projectRouter from './routes/projects.js'
+import projectTypeRouter from './routes/project-types.js'
 import adminRouter from './routes/admin.js'
 import errorHandler from './errors/error-handler.js'
 import requireAdmin from './middleware/require-admin.js'
 
 function createApp(auth: RequestHandler) {
-    const app = express()
-    app.use(express.json())
+    const app = express();
+    app.use(express.json());
     app.use(cors({
         origin: process.env.CLIENT_ORIGIN,
         methods: ['GET', 'POST', 'PUT', 'DELETE']
-    }))
+    }));
 
-    app.use(auth)
+    // Global authentication middleware
+    app.use(auth);
 
-    app.use('/api/projects', projectsRouter)
-    app.use('/api/project-types', projectTypesRouter)
-    app.use('/api/admin', requireAdmin, adminRouter)
+    // Routes for API endpoints
+    app.use('/api/projects', projectRouter);
+    app.use('/api/project-types', projectTypeRouter);
+    // Admin route protected with requireAdmin
+    app.use('/api/admin', requireAdmin, adminRouter);
 
-    app.use(errorHandler)
-    return app
+    // Custom error handler
+    app.use(errorHandler);
+    return app;
 }
 
-export default createApp
+export default createApp;

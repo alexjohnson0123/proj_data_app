@@ -4,6 +4,7 @@ import ApiError from '../errors/api-error.js'
 import validateRequestBody from '../middleware/validator.js'
 import requireAdmin from '../middleware/require-admin.js'
 import { z } from 'zod'
+import prisma from '../prisma.js'
 
 const router = Router()
 
@@ -66,4 +67,4 @@ router.delete('/:name/attributes/:label', requireAdmin, async (req, res) => {
 
 })
 
-export default router
+export default router;

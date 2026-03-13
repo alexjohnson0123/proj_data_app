@@ -1,4 +1,5 @@
 import { Project } from '../models.js'
+import type { PrismaClient } from '../../generated/prisma/client.js'
 
 // Workday project shape based on fields used in API response
 interface WorkdayProject {
@@ -9,7 +10,7 @@ interface WorkdayProject {
     startDate: string
 }
 
-export default async function updateDb(projects: WorkdayProject[]) {
+export default async function updateDb(prisma: PrismaClient, projects: WorkdayProject[]) {
     for (const project of projects) {
         try {
             const workdayId = project.id

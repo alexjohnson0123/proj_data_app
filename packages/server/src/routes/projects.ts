@@ -5,9 +5,11 @@ import * as services from '../services/project-services.js'
 import validateRequestBody from '../middleware/validator.js'
 import { z } from 'zod'
 import { ParsedQs } from 'qs'
+import prisma from '../prisma.js'
 
 const router = Router()
 
+// Helper function for casting string inputs to variable types
 function castAttrValue(value: string): string | number | boolean {
     if (value === 'true') return true
     if (value === 'false') return false
@@ -82,9 +84,9 @@ router.put('/:id', validateRequestBody(
 router.put('/:id/project-type', validateRequestBody(
     z.object({ projectTypeId: z.string(), clearAttributes: z.boolean().optional() }).strict()
 ), async (req, res) => {
-    const { projectTypeId, clearAttributes } = req.body
-    const updated = await services.updateProjectType(req.params.id as string, projectTypeId, clearAttributes)
-    res.status(200).json(updated)
+    const { projectTypeId, clearAttributes } = req.body;
+    const updated = await services.updateProjectType(prisma, req.params.id as string, projectTypeId, clearAttributes);
+    res.status(200).json(updated);
 })
 
 router.post('/:id/attributes', validateRequestBody(
@@ -99,14 +101,14 @@ router.post('/:id/attributes', validateRequestBody(
     if (!project) throw new ApiError(404, 'Project Not Found')
 
     if (project.attributes.has(name)) {
-        throw new ApiError(409, 'Duplicate Key')
+        throw new ApiError(409, 'Duplicate Key');
     }
 
-    project.attributes.set(name, value)
-    await services.validateProjectTypeAttributes(project)
-    await project.save()
+    project.attributes.set(name, value);
+    await services.validateProjectTypeAttributes(prisma, project);
+    await project.save();
 
-    return res.status(200).json({ name, value })
+    return res.status(200).json({ name, value });
 })
 
 router.put('/:id/attributes/:name', validateRequestBody(
@@ -127,14 +129,14 @@ router.put('/:id/attributes/:name', validateRequestBody(
 
     project.attributes.delete(old_name)
     project.attributes.set(name, value)
-    await services.validateProjectTypeAttributes(project)
+    await services.validateProjectTypeAttributes(prisma, project)
     await project.save()
 
     return res.status(200).json({ name, value })
 })
 
 router.delete('/:id/attributes/:name', async (req, res) => {
-    const project = await services.findProject(req.params.id)
+    const project = await services.findProject(prisma, req.params.id)
     if (!project.attributes.has(req.params.name)) {
         throw new ApiError(404, 'Attribute Not Found')
     }
@@ -144,4 +146,4 @@ router.delete('/:id/attributes/:name', async (req, res) => {
     res.status(200).send('Attribute deleted.')
 })
 
-export default router
+export default router;
