@@ -25,6 +25,10 @@ function createApp(auth: RequestHandler) {
 
     // Custom error handler
     app.use(errorHandler);
+
+    // Handle invalid routes
+    app.use((req, res) => res.status(404).json({ error: 'NotFound', message: 'Route not found' }));
+
     return app;
 }
 

@@ -1,71 +1,35 @@
 import { Router } from 'express'
-import { Project } from '../models.js'
-import ApiError from '../errors/api-error.js'
 import * as services from '../services/project-services.js'
 import validateRequestBody from '../middleware/validator.js'
 import { z } from 'zod'
-import { ParsedQs } from 'qs'
 import prisma from '../prisma.js'
+import { ParsedQs } from 'qs'
 
 const router = Router()
 
-// Helper function for casting string inputs to variable types
-function castAttrValue(value: string): string | number | boolean {
-    if (value === 'true') return true
-    if (value === 'false') return false
-    const num = Number(value)
-    if (!isNaN(num) && value.trim() !== '') return num
-    return value
-}
+
 
 // Return all projects with optional search/filter
 router.get('/', async (req, res) => {
-    const { q, client, sphere, projectType } = req.query as Record<string, string | undefined>
-    const attrFilters = (req.query.attr ?? {}) as ParsedQs
-
-    const filter: Record<string, unknown> = {}
-
-    if (q) {
-        const regex = new RegExp(q, 'i')
-        filter.$or = [
-            { name: regex },
-            { client: regex },
-            { sphere: regex },
-            { description: regex },
-        ]
-    }
-
-    if (client) filter.client = client
-    if (sphere) filter.sphere = sphere
-    if (projectType) filter.projectType = projectType
-
-    for (const [label, value] of Object.entries(attrFilters)) {
-        if (typeof value === 'string') {
-            filter[`attributes.${label}`] = castAttrValue(value)
-        }
-    }
-
-    const projects = await Project.find(filter).populate('projectType', 'name')
-    res.status(200).json(projects)
+    console.log(req.query)
+    const { q, client, sphere, projectType } = req.query as Record<string, string | undefined>;
+    const attrFilters = (req.query.attr ?
+        Array.isArray(req.query.attr) ? req.query.attr : [req.query.attr]
+        : []) as string[];
+    const projects = await services.searchProjects(prisma, q, client, sphere, projectType, attrFilters);
+    res.status(200).json(projects);
 })
 
 // Return distinct client/sphere values for filter dropdowns
 router.get('/meta', async (req, res) => {
-    const [clients, spheres] = await Promise.all([
-        Project.distinct('client'),
-        Project.distinct('sphere'),
-    ])
-    res.status(200).json({
-        clients: clients.filter(Boolean).sort(),
-        spheres: spheres.filter(Boolean).sort(),
-    })
+    res.status(200).json();
 })
 
 // Return a project by id
 router.get('/:id', async (req, res) => {
-    const project = await Project.findOne({ workdayId: req.params.id }).populate('projectType')
-    if (!project) throw new ApiError(404, 'Project Not Found')
-    res.status(200).json(project)
+    const project = await services.findProject(prisma, req.params.id);
+    console.log(`Project: ${project}`);
+    res.status(200).json(project);
 })
 
 // Update project instance
@@ -74,75 +38,50 @@ router.put('/:id', validateRequestBody(
         // TODO: insert mutable fields
     }).strict()
 ), async (req, res) => {
-    const updated = await Project.findOneAndUpdate({ workdayId: req.params.id }, req.body,
-        { returnDocument: 'after' }
-    )
-    if (!updated) throw new ApiError(404, 'Project Not Found')
-    res.status(200).json(updated)
+    const updated = null;
+    res.status(200).json(updated);
 })
 
+// Update a project's project type
 router.put('/:id/project-type', validateRequestBody(
-    z.object({ projectTypeId: z.string(), clearAttributes: z.boolean().optional() }).strict()
+    z.object({ projectTypeId: z.number(), clearAttributes: z.boolean().optional() }).strict()
 ), async (req, res) => {
     const { projectTypeId, clearAttributes } = req.body;
     const updated = await services.updateProjectType(prisma, req.params.id as string, projectTypeId, clearAttributes);
     res.status(200).json(updated);
 })
 
+// Add a new attribute value to a project
 router.post('/:id/attributes', validateRequestBody(
     z.object({
         name: z.string(),
         value: z.union([z.string(), z.number(), z.boolean()])
     })
 ), async (req, res) => {
-    const { name, value } = req.body
-
-    const project = await Project.findOne({ workdayId: req.params.id })
-    if (!project) throw new ApiError(404, 'Project Not Found')
-
-    if (project.attributes.has(name)) {
-        throw new ApiError(409, 'Duplicate Key');
-    }
-
-    project.attributes.set(name, value);
-    await services.validateProjectTypeAttributes(prisma, project);
-    await project.save();
+    const workdayId = req.params.id;
+    const { name, value } = req.body;
+    await services.addAttributeValueToProject(prisma, workdayId as string, name, value);
 
     return res.status(200).json({ name, value });
 })
 
+// Modify and update an attribute's value
 router.put('/:id/attributes/:name', validateRequestBody(
     z.object({
-        name: z.string(),
         value: z.union([z.string(), z.number(), z.boolean()])
     })
 ), async (req, res) => {
-    const old_name = req.params.name as string
-    const { name, value } = req.body
-
-    const project = await Project.findOne({ workdayId: req.params.id })
-    if (!project) throw new ApiError(404, 'Project Not Found')
-
-    if (!project.attributes.has(old_name)) {
-        throw new ApiError(404, 'Attribute Not Found')
-    }
-
-    project.attributes.delete(old_name)
-    project.attributes.set(name, value)
-    await services.validateProjectTypeAttributes(prisma, project)
-    await project.save()
-
-    return res.status(200).json({ name, value })
+    const name = req.params.name as string
+    const workdayId = req.params.id as string;
+    const { value } = req.body
+    await services.updateAttributeValue(prisma, workdayId, name, value);
+    return res.status(200).json({ value })
 })
 
+// Delete an attribute value from a project
 router.delete('/:id/attributes/:name', async (req, res) => {
-    const project = await services.findProject(prisma, req.params.id)
-    if (!project.attributes.has(req.params.name)) {
-        throw new ApiError(404, 'Attribute Not Found')
-    }
-
-    project.attributes.delete(req.params.name)
-    await project.save()
+    const { id, name } = req.params;
+    await services.deleteAttributeValue(prisma, id, name);
     res.status(200).send('Attribute deleted.')
 })
 

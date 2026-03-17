@@ -59,6 +59,84 @@ describe('Projects', () => {
             expect(res.body.length).toBe(10);
             expect(res.body[0]).toHaveProperty('workdayId');
         });
+
+        it('Should return the project with name "Project Name 5"', async () => {
+            const res = await request(app).get('/api/projects?q=Project Name 5');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveLength(1);
+            expect(res.body[0]).toHaveProperty('name');
+            expect(res.body[0].name).toBe('Project Name 5');
+        });
+
+        it('Should filter by client', async () => {
+            const res = await request(app).get('/api/projects?client=Client Name 3');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveLength(1);
+            expect(res.body[0].client).toBe('Client Name 3');
+        });
+
+        it('Should filter by sphere', async () => {
+            const res = await request(app).get('/api/projects?sphere=Sphere 3');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveLength(1);
+        });
+    });
+
+    describe('GET / (Dynamic attribute filters)', () => {
+        let venueTypeId: number;
+        let seatCountId: number;
+        let projectId: number;
+
+        beforeEach(async () => {
+            const venue = await prisma.projectType.create({
+                data: {
+                    name: 'Venue',
+                    attributeDefs: {
+                        create: [
+                            { label: 'Seat Count', dataType: 'number' },
+                            { label: 'Venue Type', dataType: 'string' }
+                        ]
+                    }
+                },
+                include: { attributeDefs: true }
+            });
+            venueTypeId = venue.id;
+            seatCountId = venue.attributeDefs[0].id;
+            venueTypeId = venue.attributeDefs[1].id;
+
+            await createProjects(10);
+            await prisma.project.update({
+                where: { workdayId: 'PROJ-5' },
+                data: {
+                    attributeValues: {
+                        create: { attributeDefinitionId: seatCountId, valueNumber: 5000 }
+                    }
+                }
+            });
+            await prisma.project.update({
+                where: { workdayId: 'PROJ-6' },
+                data: {
+                    attributeValues: {
+                        create: [
+                            { attributeDefinitionId: seatCountId, valueNumber: 5000 },
+                            { attributeDefinitionId: venueTypeId, valueString: "Hockey Arena" }
+                        ]
+                    }
+                }
+            });
+        });
+
+        it('Should return project with Seat Count == 5000', async () => {
+            const res = await request(app).get('/api/projects?attr=Seat Count:5000');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveLength(2);
+        });
+
+        it('Should return an empty list', async () => {
+            const res = await request(app).get('/api/projects?attr=Seat Count:5001');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveLength(0);
+        });
     });
 
     describe('GET /:id', () => {
@@ -67,6 +145,7 @@ describe('Projects', () => {
         it('Should return the matching project', async () => {
             const res = await request(app).get('/api/projects/PROJ-5');
             expect(res).toHaveStatus(200);
+            expect(res.body).toHaveProperty('workdayId');
             expect(res.body.workdayId).toBe('PROJ-5');
         });
 
@@ -225,6 +304,123 @@ describe('Projects', () => {
 
             const count = await prisma.attributeValue.count({ where: { project: { workdayId: 'PROJ-ID' } } });
             expect(count).toBe(1);
+        });
+    });
+
+    describe('PUT /:id/attributes/:name', () => {
+        let venueTypeId: number;
+        let seatCountId: number;
+        let projectId: number;
+
+        beforeEach(async () => {
+            const venue = await prisma.projectType.create({
+                data: {
+                    name: 'Venue',
+                    attributeDefs: {
+                        create: [
+                            { label: 'Seat Count', dataType: 'number' },
+                            { label: 'Venue Type', dataType: 'string' }
+                        ]
+                    }
+                },
+                include: { attributeDefs: true }
+            });
+            venueTypeId = venue.id;
+            seatCountId = venue.attributeDefs[0].id;
+
+            const project = await prisma.project.create({
+                data: {
+                    workdayId: 'PROJ-ID', name: 'Project Name', client: 'Client Name', sphere: 'Sphere', description: 'Description',
+                    projectTypeId: venueTypeId,
+                    attributeValues: {
+                        create: {
+                            attributeDefinitionId: seatCountId, valueNumber: 1000
+                        }
+                    }
+                }
+            });
+            projectId = project.id;
+        });
+
+        it('Should change the attribute value', async () => {
+            const res = await request(app).put('/api/projects/PROJ-ID/attributes/Seat Count')
+                .send({ value: 5000 })
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.attributeValue.count({ where: { projectId, attributeDefinitionId: seatCountId, valueNumber: 5000 } })
+            expect(count).toBe(1);
+        });
+
+        it('Should return 400 when value is incorrect type', async () => {
+            const res = await request(app).put('/api/projects/PROJ-ID/attributes/Seat Count')
+                .send({ value: "Five Thousand" })
+            expect(res).toHaveStatus(400);
+        });
+
+        it('Should return 404 project is not found', async () => {
+            const res = await request(app).put('/api/projects/PROJ-MISSING/attributes/Seat Count')
+                .send({ value: 5000 })
+            expect(res).toHaveStatus(404);
+        });
+
+        it('Should return 404 attribute name is not found', async () => {
+            const res = await request(app).put('/api/projects/PROJ-ID/attributes/MISSING')
+                .send({ value: 5000 })
+            expect(res).toHaveStatus(404);
+        });
+
+    });
+
+    describe('DELETE /:id/attributes/:name', () => {
+        let venueTypeId: number;
+        let seatCountId: number;
+        let projectId: number;
+
+        beforeEach(async () => {
+            const venue = await prisma.projectType.create({
+                data: {
+                    name: 'Venue',
+                    attributeDefs: {
+                        create: [
+                            { label: 'Seat Count', dataType: 'number' },
+                            { label: 'Venue Type', dataType: 'string' }
+                        ]
+                    }
+                },
+                include: { attributeDefs: true }
+            });
+            venueTypeId = venue.id;
+            seatCountId = venue.attributeDefs[0].id;
+
+            const project = await prisma.project.create({
+                data: {
+                    workdayId: 'PROJ-ID', name: 'Project Name', client: 'Client Name', sphere: 'Sphere', description: 'Description',
+                    projectTypeId: venueTypeId,
+                    attributeValues: {
+                        create: {
+                            attributeDefinitionId: seatCountId, valueNumber: 1000
+                        }
+                    }
+                }
+            });
+            projectId = project.id;
+        });
+        it('Should delete the attribute value', async () => {
+            const res = await request(app).delete('/api/projects/PROJ-ID/attributes/Seat Count');
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.attributeValue.count();
+            expect(count).toBe(0);
+        });
+
+        it('Should return 404 project is not found', async () => {
+            const res = await request(app).delete('/api/projects/PROJ-MISSING/attributes/Seat Count')
+            expect(res).toHaveStatus(404);
+        });
+
+        it('Should return 404 attribute name is not found', async () => {
+            const res = await request(app).delete('/api/projects/PROJ-ID/attributes/MISSING')
+            expect(res).toHaveStatus(404);
         });
     });
 });
