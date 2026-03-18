@@ -36,17 +36,15 @@ async function clearDb() {
 afterEach(clearDb);
 
 async function createProjects(k: number) {
-    for (let i = 0; i < k; i++) {
-        await prisma.project.create({
-            data: {
-                workdayId: `PROJ-${i}`,
-                name: `Project Name ${i}`,
-                client: `Client Name ${i}`,
-                sphere: `Sphere ${i}`,
-                description: `Description ${i}`
-            }
-        });
-    }
+    await prisma.project.createMany({
+        data: Array.from({ length: k }, (_, i) => ({
+            workdayId: `PROJ-${i}`,
+            name: `Project Name ${i}`,
+            client: `Client Name ${i}`,
+            sphere: `Sphere ${i}`,
+            description: `Description ${i}`
+        }))
+    });
 }
 
 describe('Projects', () => {
@@ -519,6 +517,51 @@ describe('Project Types', () => {
         });
     });
 
+    describe('PUT /:name', () => {
+        let venueId: number;
+        beforeEach(async () => {
+            const names = ['Venues', 'Residential', 'Municipality'];
+            const projTypes = await Promise.all(names.map(name => prisma.projectType.create({ data: { name } })));
+            venueId = projTypes[0].id;
+        });
+
+        it('Should update the project type', async () => {
+            const res = await request(adminApp).put('/api/project-types/Venues')
+                .send({ name: 'Updated Name' });
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.projectType.count({ where: { id: venueId, name: 'Updated Name' } });
+            expect(count).toBe(1);
+        });
+
+        it('Should return 403 when not run as admin', async () => {
+            const res = await request(app).put('/api/project-types/Venues');
+            expect(res).toHaveStatus(403);
+        })
+    });
+
+    describe('DELETE /:name', () => {
+        let venueId: number;
+        beforeEach(async () => {
+            const names = ['Venues', 'Residential', 'Municipality'];
+            const projTypes = await Promise.all(names.map(name => prisma.projectType.create({ data: { name } })));
+            venueId = projTypes[0].id;
+        });
+
+        it('Should delete the project type', async () => {
+            const res = await request(adminApp).delete('/api/project-types/Venues')
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.projectType.count({ where: { id: venueId } });
+            expect(count).toBe(0);
+        })
+
+        it('Should return 403 when not run as admin', async () => {
+            const res = await request(app).delete('/api/project-types/Venues');
+            expect(res).toHaveStatus(403);
+        })
+    });
+
     describe('POST /:name/attributes', () => {
         beforeEach(async () => {
             await prisma.projectType.create({ data: { name: 'Venues' } });
@@ -537,7 +580,66 @@ describe('Project Types', () => {
         });
 
         it('Should return 403 when not run as admin', async () => {
-            const res = await request(app).post('/api/project-types/Missing Type/attributes');
+            const res = await request(app).post('/api/project-types/Venues/attributes');
+            expect(res).toHaveStatus(403);
+        });
+    });
+
+    describe('PUT /:name/attributes/:label', () => {
+        let venueId: number;
+        let seatCountId: number;
+        beforeEach(async () => {
+            const projectType = await prisma.projectType.create({
+                data: {
+                    name: 'Venues',
+                    attributeDefs: { create: { label: 'Seat Count', dataType: 'number' } }
+                },
+                include: { attributeDefs: true }
+            });
+            venueId = projectType.id;
+            seatCountId = projectType.attributeDefs[0].id;
+        });
+
+        it('Should update the attribute definition', async () => {
+            const res = await request(adminApp).put('/api/project-types/Venues/attributes/Seat Count')
+                .send({ label: 'Updated Label' });
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.attributeDefinition.count({ where: { id: seatCountId, label: 'Updated Label' } });
+            expect(count).toBe(1);
+        });
+
+        it('Should return 403 when not run as admin', async () => {
+            const res = await request(app).put('/api/project-types/Venues/attributes/Seat Count');
+            expect(res).toHaveStatus(403);
+        });
+    });
+
+    describe('DELETE /:name/attributes/:label', () => {
+        let venueId: number;
+        let seatCountId: number;
+        beforeEach(async () => {
+            const projectType = await prisma.projectType.create({
+                data: {
+                    name: 'Venues',
+                    attributeDefs: { create: { label: 'Seat Count', dataType: 'number' } }
+                },
+                include: { attributeDefs: true }
+            });
+            venueId = projectType.id;
+            seatCountId = projectType.attributeDefs[0].id;
+        });
+
+        it('Should delete the attribute definition', async () => {
+            const res = await request(adminApp).delete('/api/project-types/Venues/attributes/Seat Count');
+            expect(res).toHaveStatus(200);
+
+            const count = await prisma.attributeDefinition.count({ where: { id: seatCountId } });
+            expect(count).toBe(0);
+        });
+
+        it('Should return 403 when not run as admin', async () => {
+            const res = await request(app).delete('/api/project-types/Venues/attributes/Seat Count');
             expect(res).toHaveStatus(403);
         });
     });

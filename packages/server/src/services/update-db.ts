@@ -1,4 +1,3 @@
-import { Project } from '../models.js'
 import type { PrismaClient } from '../../generated/prisma/client.js'
 
 // Workday project shape based on fields used in API response
@@ -24,11 +23,9 @@ export default async function updateDb(prisma: PrismaClient, projects: WorkdayPr
                 startDate: project.startDate
             }
 
-            const dbProject = await Project.findOne({ workdayId })
+            const dbProject = null;
             if (dbProject) {
-                await Project.findByIdAndUpdate(dbProject._id, workdayData)
             } else {
-                await Project.create(workdayData)
             }
         } catch (err: any) {
             console.error(`Error initializing Workday project: ${err.message}\n${project}`)
