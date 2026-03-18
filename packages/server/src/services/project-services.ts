@@ -69,6 +69,22 @@ export async function searchProjects(
     return await prisma.project.findMany({ where, include: { projectType: true } });
 }
 
+export async function getMeta(prisma: PrismaClient) {
+    const [clients, spheres] = await Promise.all([
+        prisma.project.findMany({
+            where: { client: { not: null } },
+            select: { client: true },
+            distinct: ['client']
+        }).then(arr => arr.map(p => p.client)),
+        prisma.project.findMany({
+            where: { sphere: { not: null } },
+            select: { sphere: true },
+            distinct: ['sphere']
+        }).then(arr => arr.map(p => p.sphere))
+    ]);
+    return { clients, spheres };
+}
+
 // Add attribute value to a project
 export async function addAttributeValueToProject(prisma: PrismaClient, workdayId: string, name: string, value: number | string | Date) {
     const project = await findProject(prisma, workdayId);

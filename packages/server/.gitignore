@@ -1,7 +1,0 @@
-sample_data
-.env
-coverage
-node_modules
-.vscode
-/generated/prisma
-/depreciated

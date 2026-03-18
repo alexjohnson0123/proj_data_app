@@ -139,6 +139,21 @@ describe('Projects', () => {
         });
     });
 
+    describe('GET /meta', () => {
+        it('Should return all clients and spheres', async () => {
+            await createProjects(10);
+
+            const res = await request(app).get('/api/projects/meta');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveProperty('clients');
+            expect(res.body.clients).toHaveLength(10);
+            expect(res.body.clients).toContain('Client Name 5');
+            expect(res.body).toHaveProperty('spheres');
+            expect(res.body.spheres).toHaveLength(10);
+            expect(res.body.spheres).toContain('Sphere 5');
+        })
+    });
+
     describe('GET /:id', () => {
         beforeEach(async () => { await createProjects(10); });
 

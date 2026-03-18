@@ -20,7 +20,8 @@ router.get('/', async (req, res) => {
 
 // Return distinct client/sphere values for filter dropdowns
 router.get('/meta', async (req, res) => {
-    res.status(200).json();
+    const meta = await services.getMeta(prisma);
+    res.status(200).json(meta);
 })
 
 // Return a project by id
