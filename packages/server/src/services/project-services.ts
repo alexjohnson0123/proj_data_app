@@ -1,7 +1,6 @@
 import ApiError from '../errors/api-error.js'
 import type { AttributeValue, PrismaClient, Project } from '../../generated/prisma/client.js'
 import { ProjectWhereInput } from '../../generated/prisma/models.js'
-import { ParsedQs } from 'qs';
 
 // Helper function for casting string inputs to variable types
 function castAttrValue(value: string): string | number | boolean {
@@ -15,7 +14,7 @@ function castAttrValue(value: string): string | number | boolean {
 // Search and filter projects
 // q: the search query
 // client/sphere/projectType: static search filters
-// attrFilters: an object with dynamic 
+// attrFilters: repeated `attr=label:value` query params for dynamic attribute filtering
 export async function searchProjects(
     prisma: PrismaClient,
     q: string | undefined,

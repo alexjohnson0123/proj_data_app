@@ -102,7 +102,7 @@ describe('Projects', () => {
             });
             venueTypeId = venue.id;
             seatCountId = venue.attributeDefs[0].id;
-            venueTypeId = venue.attributeDefs[1].id;
+            const venueTypeAttrId = venue.attributeDefs[1].id;
 
             await createProjects(10);
             await prisma.project.update({
@@ -119,7 +119,7 @@ describe('Projects', () => {
                     attributeValues: {
                         create: [
                             { attributeDefinitionId: seatCountId, valueNumber: 5000 },
-                            { attributeDefinitionId: venueTypeId, valueString: "Hockey Arena" }
+                            { attributeDefinitionId: venueTypeAttrId, valueString: "Hockey Arena" }
                         ]
                     }
                 }
@@ -435,6 +435,24 @@ describe('Project Types', () => {
             expect(res).toHaveStatus(200);
             expect(res.body).toHaveLength(3);
             expect(res.body.map((pt: any) => pt.name)).toEqual(expect.arrayContaining(names));
+        });
+    });
+
+    describe('GET /:name', () => {
+        beforeEach(async () => {
+            const names = ['Venues', 'Residential', 'Municipality'];
+            await Promise.all(names.map(name => prisma.projectType.create({ data: { name } })));
+        });
+        it('Should return the project type with matching name', async () => {
+            const res = await request(app).get('/api/project-types/Venues');
+            expect(res).toHaveStatus(200);
+            expect(res.body).toHaveProperty('name');
+            expect(res.body.name).toBe('Venues');
+        });
+
+        it('Should return 404 Project Type Not Found', async () => {
+            const res = await request(app).get('/api/project-types/MISSING');
+            expect(res).toHaveStatus(404);
         });
     });
 

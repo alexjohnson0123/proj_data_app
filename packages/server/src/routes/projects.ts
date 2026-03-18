@@ -3,7 +3,6 @@ import * as services from '../services/project-services.js'
 import validateRequestBody from '../middleware/validator.js'
 import { z } from 'zod'
 import prisma from '../prisma.js'
-import { ParsedQs } from 'qs'
 
 const router = Router()
 
@@ -11,7 +10,6 @@ const router = Router()
 
 // Return all projects with optional search/filter
 router.get('/', async (req, res) => {
-    console.log(req.query)
     const { q, client, sphere, projectType } = req.query as Record<string, string | undefined>;
     const attrFilters = (req.query.attr ?
         Array.isArray(req.query.attr) ? req.query.attr : [req.query.attr]
@@ -28,7 +26,6 @@ router.get('/meta', async (req, res) => {
 // Return a project by id
 router.get('/:id', async (req, res) => {
     const project = await services.findProject(prisma, req.params.id);
-    console.log(`Project: ${project}`);
     res.status(200).json(project);
 })
 

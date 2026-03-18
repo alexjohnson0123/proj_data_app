@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import { ProjectTypeDefinition } from '../models.js'
-import ApiError from '../errors/api-error.js'
 import validateRequestBody from '../middleware/validator.js'
 import requireAdmin from '../middleware/require-admin.js'
 import { z } from 'zod'
 import prisma from '../prisma.js'
+import * as services from '../services/project-type-services.js'
 
 const router = Router()
 
@@ -20,21 +19,20 @@ const projectTypeDefinitionSchema = z.object({
 })
 
 router.get('/', async (req, res) => {
-    const projectTypes = await ProjectTypeDefinition.find()
+    const projectTypes = await services.getProjectTypes(prisma);
     res.status(200).json(projectTypes)
 })
 
 router.post('/', requireAdmin, validateRequestBody(projectTypeDefinitionSchema), async (req, res) => {
-    const newProjectType = await ProjectTypeDefinition.create({
-        name: req.body.name,
-        attributes: req.body.attributes ?? []
-    })
-    res.status(201).json(newProjectType)
+    const name = req.body.name;
+    const attributeDefs = req.body.attributes;
+    const newProjectType = await services.createProjectType(prisma, name, attributeDefs);
+    res.status(201).json(newProjectType);
 })
 
 router.get('/:name', async (req, res) => {
-    const projectType = await ProjectTypeDefinition.findOne({ name: req.params.name })
-    if (!projectType) throw new ApiError(404, 'Project Type definition not found')
+    const name = req.params.name;
+    const projectType = await services.getProjectTypeByName(prisma, name);
     res.status(200).json(projectType)
 })
 
@@ -47,16 +45,10 @@ router.delete('/:name', requireAdmin, async (req, res) => {
 })
 
 router.post('/:name/attributes', requireAdmin, validateRequestBody(attributeSchema), async (req, res) => {
-    const result = await ProjectTypeDefinition.updateOne(
-        { name: req.params.name },
-        { $addToSet: { attributes: req.body } }
-    )
-
-    if (result.matchedCount === 0) {
-        throw new ApiError(404, 'Not Found')
-    }
-
-    res.status(201).json(req.body)
+    const projectTypeName = req.params.name as string;
+    const { label, dataType } = req.body;
+    const attributeDef = await services.createAttributeDefinition(prisma, label, dataType, projectTypeName);
+    res.status(201).json(attributeDef);
 })
 
 router.put('/:name/attributes/:label', requireAdmin, validateRequestBody(attributeSchema), async (req, res) => {
