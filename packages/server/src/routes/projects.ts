@@ -31,6 +31,7 @@ router.get('/:id', async (req, res) => {
 // Update project instance
 // TODO: implement with mutable Workday fields
 router.put('/:id', async (req, res) => {
+    console.log('GET /api/projects reached');
     const updated = null;
     res.status(200).json(updated);
 });

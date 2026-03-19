@@ -6,7 +6,7 @@ export async function getProjectTypes(prisma: PrismaClient) {
 }
 
 export async function getProjectTypeByName(prisma: PrismaClient, name: string) {
-    const projectType = await prisma.projectType.findUnique({ where: { name } });
+    const projectType = await prisma.projectType.findUnique({ where: { name }, include: { attributeDefs: true } });
     if (!projectType) throw new ApiError(404, 'Project Type definition not found');
     return projectType;
 }

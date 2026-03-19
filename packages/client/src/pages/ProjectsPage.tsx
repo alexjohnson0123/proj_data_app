@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getProjects, getProjectsMeta } from '@/api/projects'
 import { getProjectTypes } from '@/api/projectTypes'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ProjectsTable from '@/components/ProjectsTable'
 
 const ALL = '__all__'
 
@@ -30,7 +28,7 @@ export default function ProjectsPage() {
     queryFn: () => getProjects(filters),
   })
 
-  const selectedType = projectTypes.find(pt => pt._id === filters.projectType)
+  const selectedType = projectTypes.find(pt => String(pt.id) === filters.projectType)
   const hasActiveFilters = filters.q || filters.client || filters.sphere || filters.projectType
 
   function handleSearch(e: React.FormEvent) {
@@ -105,17 +103,17 @@ export default function ProjectsPage() {
           <SelectContent>
             <SelectItem value={ALL}>All project types</SelectItem>
             {projectTypes.map(pt => (
-              <SelectItem key={pt._id} value={pt._id}>{pt.name}</SelectItem>
+              <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
       {/* Dynamic attribute filters (visible when project type is selected) */}
-      {selectedType && selectedType.attributes.length > 0 && (
+      {selectedType && selectedType.attributeDefs.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted/50 rounded-md border">
           <span className="text-sm text-muted-foreground">Filter by attribute:</span>
-          {selectedType.attributes.map(attr => (
+          {selectedType.attributeDefs.map(attr => (
             <div key={attr.label} className="flex items-center gap-1.5">
               <label className="text-sm">{attr.label}</label>
               <Input
@@ -131,65 +129,7 @@ export default function ProjectsPage() {
       )}
 
       {/* Results */}
-      {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading...</p>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">
-            {projects.length} project{projects.length !== 1 ? 's' : ''}
-          </p>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Sphere</TableHead>
-                  <TableHead>Project Type</TableHead>
-                  <TableHead>Start Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {error ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-destructive py-10">
-                      Could not load projects — {error.message}
-                    </TableCell>
-                  </TableRow>
-                ) : projects.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      No projects found.
-                    </TableCell>
-                  </TableRow>
-                ) : projects.map(p => (
-                  <TableRow key={p.workdayId}>
-                    <TableCell>
-                      <Link
-                        to={`/projects/${p.workdayId}`}
-                        className="font-medium hover:underline"
-                      >
-                        {p.name || p.workdayId}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{p.client || '—'}</TableCell>
-                    <TableCell>{p.sphere || '—'}</TableCell>
-                    <TableCell>
-                      {p.projectType
-                        ? <Badge variant="secondary">{p.projectType.name}</Badge>
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {p.startDate ? new Date(p.startDate).toLocaleDateString() : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      )}
+      <ProjectsTable projects={projects} isLoading={isLoading} error={error} />
     </div>
   )
 }

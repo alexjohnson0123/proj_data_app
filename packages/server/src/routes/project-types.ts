@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import validateRequestBody from '../middleware/validator.js'
-import requireAdmin from '../middleware/require-admin.js'
+import { requireAdmin } from '../middleware/auth.js'
 import prisma from '../prisma.js'
 import * as services from '../services/project-type-services.js'
 import {

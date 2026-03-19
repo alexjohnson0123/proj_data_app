@@ -5,6 +5,10 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         testTimeout: 2000,
-        setupFiles: ['dotenv/config']
+        setupFiles: ['dotenv/config'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text']
+        }
     }
 });

@@ -6,7 +6,16 @@ interface WorkdayProject {
     name: string
     company: { descriptor: string }
     overview: string
-    startDate: string
+    startDate: string,
+    worktags: {
+        id: string,
+        descriptor: string
+    }[]
+}
+
+function getWorktag(worktags: { id: string, descriptor: string }[], prefix: string): string | null {
+    const tag = worktags.find(t => t.id.startsWith(prefix))
+    return tag ? tag.descriptor.split(': ')[1] : null
 }
 
 export default async function updateDb(prisma: PrismaClient, projects: WorkdayProject[]) {
@@ -20,13 +29,16 @@ export default async function updateDb(prisma: PrismaClient, projects: WorkdayPr
                 name: project.name,
                 client: project.company.descriptor,
                 description: project.overview,
-                startDate: project.startDate
+                startDate: new Date(project.startDate),
+                sphere: getWorktag(project.worktags, 'Industry_Sphere='),
+                region: getWorktag(project.worktags, 'Region='),
             }
 
-            const dbProject = null;
-            if (dbProject) {
-            } else {
-            }
+            await prisma.project.upsert({
+                where: { workdayId },
+                create: workdayData,
+                update: workdayData
+            });
         } catch (err: any) {
             console.error(`Error initializing Workday project: ${err.message}\n${project}`)
         }

@@ -17,7 +17,7 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     })
 }
 
-export default function (req: Request, res: Response, next: NextFunction) {
+export default function auth(req: Request, res: Response, next: NextFunction) {
     const header = req.headers['authorization']
 
     if (typeof header === 'undefined') {
@@ -33,4 +33,12 @@ export default function (req: Request, res: Response, next: NextFunction) {
         req.user = decoded as { roles?: string[], [key: string]: unknown }
         next()
     })
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+    const roles = req.user?.roles ?? []
+    if (!roles.includes('admin')) {
+        throw new ApiError(403, 'Insufficient Permissions')
+    }
+    next()
 }

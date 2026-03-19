@@ -39,6 +39,7 @@ model Project {
   name            String?
   client          String?
   sphere          String?
+  region          String?
   description     String?
   startDate       DateTime?
   projectTypeId   Int?

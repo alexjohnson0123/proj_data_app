@@ -4,10 +4,11 @@ import projectRouter from './routes/projects.js'
 import projectTypeRouter from './routes/project-types.js'
 import adminRouter from './routes/admin.js'
 import errorHandler from './errors/error-handler.js'
-import requireAdmin from './middleware/require-admin.js'
+import { requireAdmin } from './middleware/auth.js'
 
 function createApp(auth: RequestHandler) {
     const app = express();
+
     app.use(express.json());
     app.use(cors({
         origin: process.env.CLIENT_ORIGIN,

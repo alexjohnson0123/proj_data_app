@@ -1,26 +1,38 @@
-// Temporary API types — will be replaced by @proj/shared types in Phase 3
+import type { DataType } from '@proj/shared'
 
 export interface AttributeDefinition {
+    id: number
     label: string
-    dataType: 'number' | 'string' | 'date'
-    required?: boolean
+    dataType: DataType
+    required: boolean
+    projectTypeId: number
 }
 
 export interface ProjectType {
-    _id: string
+    id: number
     name: string
-    attributes: AttributeDefinition[]
+    attributeDefs: AttributeDefinition[]
+}
+
+export interface AttributeValue {
+    id: number
+    projectId: number
+    attributeDefinitionId: number
+    valueString: string | null
+    valueNumber: number | null
+    valueDate: string | null
 }
 
 export interface Project {
+    id: number
     workdayId: string
-    name?: string
-    client?: string
-    sphere?: string
-    description?: string
-    startDate?: string
-    projectType?: ProjectType
-    attributes?: Record<string, unknown>
+    name: string | null
+    client: string | null
+    sphere: string | null
+    description: string | null
+    startDate: string | null
+    projectTypeId: number | null
+    projectType: ProjectType | null
 }
 
 export interface ProjectsMeta {

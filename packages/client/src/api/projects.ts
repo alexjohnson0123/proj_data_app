@@ -18,7 +18,7 @@ export async function getProjects(filters: ProjectFilters = {}): Promise<Project
     if (projectType) params.set('projectType', projectType)
     if (attr) {
         for (const [label, value] of Object.entries(attr)) {
-            if (value !== undefined && value !== '') params.set(`attr[${label}]`, value)
+            if (value !== undefined && value !== '') params.append('attr', `${label}:${value}`)
         }
     }
     const qs = params.toString()
@@ -33,7 +33,7 @@ export async function getProjectsMeta(): Promise<ProjectsMeta> {
     return apiFetch<ProjectsMeta>('/api/projects/meta')
 }
 
-export async function assignProjectType(id: string, projectTypeId: string, clearAttributes?: boolean): Promise<Project> {
+export async function assignProjectType(id: string, projectTypeId: number, clearAttributes?: boolean): Promise<Project> {
     return apiFetch<Project>(`/api/projects/${id}/project-type`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

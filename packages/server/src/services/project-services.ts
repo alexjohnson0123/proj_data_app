@@ -150,7 +150,7 @@ export async function getAttributeValues(prisma: PrismaClient, workdayId: string
 
 // Return project given workdayId
 export async function findProject(prisma: PrismaClient, id: string): Promise<Project> {
-    const project = await prisma.project.findUnique({ where: { workdayId: id } })
+    const project = await prisma.project.findUnique({ where: { workdayId: id }, include: { attributeValues: true } })
     if (project === null) throw new ApiError(404, 'Project Not Found');
     return project
 }
