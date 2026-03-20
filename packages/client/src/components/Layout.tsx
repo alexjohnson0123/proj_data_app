@@ -1,10 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import logo from '@/assets/images/Catalyst 2025.png'
 
 export default function Layout() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b bg-background px-6 h-14 flex items-center gap-6">
-        <span className="font-semibold text-foreground mr-4">Project Data</span>
+        <div className="flex items-center gap-2 mr-4">
+          <img src={logo} alt="Catalyst" className="h-7 w-auto" />
+          <span className="text-lg font-semibold text-foreground">Project Data</span>
+        </div>
         <NavLink
           to="/"
           end

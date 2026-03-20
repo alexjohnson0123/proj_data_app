@@ -36,7 +36,7 @@ export async function searchProjects(
 
     if (client) where.client = client;
     if (sphere) where.sphere = sphere;
-    if (projectType) where.projectType = { is: { name: projectType } };
+    if (projectType) where.projectTypeId = parseInt(projectType);
 
     const parsedAttributes = attrFilters.map((s) => {
         const arr = s.split(':');
@@ -150,7 +150,10 @@ export async function getAttributeValues(prisma: PrismaClient, workdayId: string
 
 // Return project given workdayId
 export async function findProject(prisma: PrismaClient, id: string): Promise<Project> {
-    const project = await prisma.project.findUnique({ where: { workdayId: id }, include: { attributeValues: true } })
+    const project = await prisma.project.findUnique({
+        where: { workdayId: id },
+        include: { attributeValues: true, projectType: { include: { attributeDefs: true } } }
+    })
     if (project === null) throw new ApiError(404, 'Project Not Found');
     return project
 }

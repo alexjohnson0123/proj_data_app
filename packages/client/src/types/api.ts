@@ -29,10 +29,12 @@ export interface Project {
     name: string | null
     client: string | null
     sphere: string | null
+    region: string | null
     description: string | null
     startDate: string | null
     projectTypeId: number | null
     projectType: ProjectType | null
+    attributeValues?: AttributeValue[]
 }
 
 export interface ProjectsMeta {

@@ -38,7 +38,7 @@ export default function ProjectDetailPage() {
 
   const assignTypeMutation = useMutation({
     mutationFn: ({ projectTypeId, clearAttributes }: { projectTypeId: string; clearAttributes: boolean }) =>
-      assignProjectType(id!, projectTypeId, clearAttributes),
+      assignProjectType(id!, Number(projectTypeId), clearAttributes),
     onSuccess: () => { invalidate(); setAssignOpen(false) },
   })
 
@@ -56,9 +56,12 @@ export default function ProjectDetailPage() {
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading...</p>
   if (error) return <p className="text-destructive text-sm">Error: {error.message}</p>
 
-  const attrs = project!.attributes ? Object.entries(project!.attributes) : []
-  const typeAttrs = project!.projectType?.attributes ?? []
-  const setAttrNames = new Set(attrs.map(([name]) => name))
+  const typeAttrs = project!.projectType?.attributeDefs ?? []
+  const attrs = (project!.attributeValues ?? []).map(av => {
+    const def = typeAttrs.find(d => d.id === av.attributeDefinitionId)
+    return { name: def?.label ?? '', value: av.valueString ?? av.valueNumber ?? av.valueDate ?? '' }
+  })
+  const setAttrNames = new Set(attrs.map(a => a.name))
   const availableAttrs = typeAttrs.filter(a => !setAttrNames.has(a.label))
 
   return (
@@ -78,6 +81,7 @@ export default function ProjectDetailPage() {
       <div className="rounded-md border p-5 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
         <InfoField label="Client" value={project!.client} />
         <InfoField label="Sphere" value={project!.sphere} />
+        <InfoField label="Region" value={project!.region} />
         <InfoField
           label="Start Date"
           value={project!.startDate ? new Date(project!.startDate).toLocaleDateString() : null}
@@ -90,70 +94,74 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
-      {/* Project type */}
+      {/* Project type + Attributes */}
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base font-semibold">Project Type</h2>
-          <Button size="sm" variant="outline" onClick={() => setAssignOpen(true)}>
-            {project!.projectType ? 'Change' : 'Assign'}
-          </Button>
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            Project Type{project!.projectType && <>: <Badge>{project!.projectType.name}</Badge></>}
+          </h2>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setAssignOpen(true)}>
+              {project!.projectType ? 'Change' : 'Assign'}
+            </Button>
+            {project!.projectType && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAddAttrOpen(true)}
+                disabled={availableAttrs.length === 0}
+              >
+                + Add
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="rounded-md border p-4 text-sm">
-          {project!.projectType
-            ? <Badge>{project!.projectType.name}</Badge>
-            : <span className="text-muted-foreground">No project type assigned.</span>
-          }
-        </div>
-      </section>
-
-      {/* Attributes */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base font-semibold">Attributes</h2>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setAddAttrOpen(true)}
-            disabled={!project!.projectType || availableAttrs.length === 0}
-          >
-            + Add
-          </Button>
-        </div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead className="w-20" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {attrs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                    No attributes set.
-                  </TableCell>
-                </TableRow>
-              ) : attrs.map(([name, value]) => (
-                <TableRow key={name}>
-                  <TableCell className="font-medium">{name}</TableCell>
-                  <TableCell>{String(value)}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs"
-                      onClick={() => setEditAttr({ name, value })}
-                    >
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {!project!.projectType ? (
+          <p className="text-sm text-muted-foreground">No project type assigned.</p>
+        ) : (
+          <div className="rounded-md border">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-semibold">Attributes</span>
+            </div>
+            <div className="p-4">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="font-semibold">
+                      <TableHead>Name</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="w-20" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attrs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                          No attributes set.
+                        </TableCell>
+                      </TableRow>
+                    ) : attrs.map(({ name, value }) => (
+                      <TableRow key={name}>
+                        <TableCell className="font-normal">{name}</TableCell>
+                        <TableCell>{String(value)}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => setEditAttr({ name, value })}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Dialogs */}
@@ -238,11 +246,13 @@ function AssignTypeDialog({ open, onOpenChange, projectTypes, hasAttributes, isP
             <Label>Project Type</Label>
             <Select value={projectTypeId} onValueChange={v => setProjectTypeId(v ?? '')}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a project type" />
+                <SelectValue placeholder="Select a project type">
+                  {projectTypes.find(pt => String(pt.id) === projectTypeId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {projectTypes.map(pt => (
-                  <SelectItem key={pt._id} value={pt._id}>{pt.name}</SelectItem>
+                  <SelectItem key={pt.id} value={String(pt.id)} textValue={pt.name}>{pt.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
