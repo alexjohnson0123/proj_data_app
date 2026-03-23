@@ -49,24 +49,39 @@ router.post('/:id/attributes', validateRequestBody(attributeValueSchema), async 
     const workdayId = req.params.id;
     const { name, value } = req.body;
     await services.addAttributeValueToProject(prisma, workdayId as string, name, value);
-
     return res.status(200).json({ name, value });
 });
 
 // Modify and update an attribute's value
 router.put('/:id/attributes/:name', validateRequestBody(valueSchema), async (req, res) => {
-    const name = req.params.name as string
+    const name = req.params.name as string;
     const workdayId = req.params.id as string;
-    const { value } = req.body
+    const { value } = req.body;
     await services.updateAttributeValue(prisma, workdayId, name, value);
-    return res.status(200).json({ value })
+    return res.status(200).json({ value });
 });
 
 // Delete an attribute value from a project
 router.delete('/:id/attributes/:name', async (req, res) => {
     const { id, name } = req.params;
     await services.deleteAttributeValue(prisma, id, name);
-    res.status(200).send('Attribute deleted.')
+    res.status(200).send('Attribute deleted.');
+});
+
+// Add an engagement type
+router.post('/:id/engagementTypes/:engagementType', async (req, res) => {
+    const workdayId = req.params.id;
+    const engagementTypeName = req.params.engagementType;
+    const engagementType = await services.addEngagementType(prisma, workdayId, engagementTypeName);
+    res.status(200).json(engagementType);
+});
+
+// Remove an engagement type
+router.delete('/:id/engagementTypes/:engagementType', async (req, res) => {
+    const workdayId = req.params.id;
+    const engagementTypeName = req.params.engagementType;
+    const engagementType = await services.removeEngagementType(prisma, workdayId, engagementTypeName);
+    res.status(200).json(engagementType);
 });
 
 export default router;

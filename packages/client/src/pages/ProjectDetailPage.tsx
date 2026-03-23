@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getProject, assignProjectType, addAttribute, updateAttribute } from '@/api/projects'
+import { getProject, assignProjectType, addAttribute, updateAttribute, addEngagementType, removeEngagementType } from '@/api/projects'
 import { getProjectTypes } from '@/api/projectTypes'
+import { getEngagementTypes } from '@/api/engagementTypes'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { AttributeDefinition, ProjectType } from '@/types/api'
+import type { AttributeDefinition, EngagementType, ProjectType } from '@/types/api'
 
 interface EditAttr {
   name: string
@@ -29,10 +30,15 @@ export default function ProjectDetailPage() {
     queryKey: ['project-types'],
     queryFn: getProjectTypes,
   })
+  const { data: allEngagementTypes = [] } = useQuery({
+    queryKey: ['engagement-types'],
+    queryFn: getEngagementTypes,
+  })
 
   const [assignOpen, setAssignOpen] = useState(false)
   const [addAttrOpen, setAddAttrOpen] = useState(false)
   const [editAttr, setEditAttr] = useState<EditAttr | null>(null)
+  const [addEngagementOpen, setAddEngagementOpen] = useState(false)
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['project', id] })
 
@@ -53,6 +59,16 @@ export default function ProjectDetailPage() {
     onSuccess: () => { invalidate(); setEditAttr(null) },
   })
 
+  const addEngagementMutation = useMutation({
+    mutationFn: (name: string) => addEngagementType(id!, name),
+    onSuccess: () => { invalidate(); setAddEngagementOpen(false) },
+  })
+
+  const removeEngagementMutation = useMutation({
+    mutationFn: (name: string) => removeEngagementType(id!, name),
+    onSuccess: invalidate,
+  })
+
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading...</p>
   if (error) return <p className="text-destructive text-sm">Error: {error.message}</p>
 
@@ -63,6 +79,8 @@ export default function ProjectDetailPage() {
   })
   const setAttrNames = new Set(attrs.map(a => a.name))
   const availableAttrs = typeAttrs.filter(a => !setAttrNames.has(a.label))
+  const assignedEngagementNames = new Set((project!.engagementTypes ?? []).map(e => e.name))
+  const availableEngagementTypes = allEngagementTypes.filter(e => !assignedEngagementNames.has(e.name))
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -127,7 +145,7 @@ export default function ProjectDetailPage() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="font-semibold">
+                    <TableRow className="font-bold">
                       <TableHead>Name</TableHead>
                       <TableHead>Value</TableHead>
                       <TableHead className="w-20" />
@@ -142,7 +160,7 @@ export default function ProjectDetailPage() {
                       </TableRow>
                     ) : attrs.map(({ name, value }) => (
                       <TableRow key={name}>
-                        <TableCell className="font-normal">{name}</TableCell>
+                        <TableCell className="font-medium">{name}</TableCell>
                         <TableCell>{String(value)}</TableCell>
                         <TableCell>
                           <Button
@@ -160,6 +178,38 @@ export default function ProjectDetailPage() {
                 </Table>
               </div>
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* Engagement Types */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-base font-semibold">Engagement Types</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setAddEngagementOpen(true)}
+            disabled={availableEngagementTypes.length === 0}
+          >
+            + Add
+          </Button>
+        </div>
+        {(project!.engagementTypes ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No engagement types assigned.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(project!.engagementTypes ?? []).map(et => (
+              <Badge key={et.id} variant="secondary" className="flex items-center gap-1.5 pr-1">
+                {et.name}
+                <button
+                  onClick={() => removeEngagementMutation.mutate(et.name)}
+                  className="text-muted-foreground hover:text-destructive transition-colors leading-none"
+                >
+                  ✕
+                </button>
+              </Badge>
+            ))}
           </div>
         )}
       </section>
@@ -197,6 +247,16 @@ export default function ProjectDetailPage() {
         onSubmit={({ name, value }) =>
           editAttrMutation.mutate({ oldName: editAttr!.name, name, value })
         }
+      />
+
+      <AddEngagementTypeDialog
+        key={String(addEngagementOpen)}
+        open={addEngagementOpen}
+        onOpenChange={setAddEngagementOpen}
+        availableEngagementTypes={availableEngagementTypes}
+        isPending={addEngagementMutation.isPending}
+        error={addEngagementMutation.error}
+        onSubmit={name => addEngagementMutation.mutate(name)}
       />
     </div>
   )
@@ -360,6 +420,51 @@ function AddAttributeDialog({ open, onOpenChange, availableAttrs, isPending, err
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface AddEngagementTypeDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  availableEngagementTypes: EngagementType[]
+  isPending: boolean
+  error: Error | null
+  onSubmit: (name: string) => void
+}
+
+function AddEngagementTypeDialog({ open, onOpenChange, availableEngagementTypes, isPending, error, onSubmit }: AddEngagementTypeDialogProps) {
+  const [selected, setSelected] = useState('')
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Add Engagement Type</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label>Engagement Type</Label>
+            <Select value={selected} onValueChange={v => setSelected(v ?? '')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an engagement type" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEngagementTypes.map(et => (
+                  <SelectItem key={et.id} value={et.name}>{et.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {error && <p className="text-sm text-destructive">{error.message}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={() => onSubmit(selected)} disabled={!selected || isPending}>
+              {isPending ? 'Adding...' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

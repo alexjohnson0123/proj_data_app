@@ -39,30 +39,23 @@ export async function searchProjects(
     if (projectType) where.projectTypeId = parseInt(projectType);
 
     const parsedAttributes = attrFilters.map((s) => {
-        const arr = s.split(':');
-        return [arr[0], arr.slice(1).join(':')];
+        const [label, op, ...rest] = s.split(':');
+        return { label, op, value: rest.join(':') };
     });
     const dynamicFilters: ProjectWhereInput[] = []
-    for (const [label, value] of parsedAttributes) {
-        const casted = castAttrValue(value as string);
-        if (typeof casted === 'number')
-            dynamicFilters.push({
-                attributeValues: {
-                    some: { attributeDef: { label }, valueNumber: casted }
-                }
-            });
-        else if (!isNaN(Date.parse(value as string)))
-            dynamicFilters.push({
-                attributeValues: {
-                    some: { attributeDef: { label }, valueDate: new Date(value as string) }
-                }
-            });
-        else if (typeof casted === 'string')
-            dynamicFilters.push({
-                attributeValues: {
-                    some: { attributeDef: { label }, valueString: casted }
-                }
-            });
+    for (const { label, op, value } of parsedAttributes) {
+        const casted = castAttrValue(value);
+        if (typeof casted === 'number') {
+            const numFilter = op === 'gt' ? { gt: casted } : op === 'lt' ? { lt: casted } : { equals: casted };
+            dynamicFilters.push({ attributeValues: { some: { attributeDef: { label }, valueNumber: numFilter } } });
+        } else if (!isNaN(Date.parse(value))) {
+            const dateVal = new Date(value);
+            const dateFilter = op === 'before' ? { lt: dateVal } : op === 'after' ? { gt: dateVal } : { equals: dateVal };
+            dynamicFilters.push({ attributeValues: { some: { attributeDef: { label }, valueDate: dateFilter } } });
+        } else if (typeof casted === 'string') {
+            const strFilter = op === 'eq' ? { equals: casted } : { contains: casted, mode: 'insensitive' as const };
+            dynamicFilters.push({ attributeValues: { some: { attributeDef: { label }, valueString: strFilter } } });
+        }
     }
     if (dynamicFilters.length > 0) where.AND = dynamicFilters;
 
@@ -152,7 +145,7 @@ export async function getAttributeValues(prisma: PrismaClient, workdayId: string
 export async function findProject(prisma: PrismaClient, id: string): Promise<Project> {
     const project = await prisma.project.findUnique({
         where: { workdayId: id },
-        include: { attributeValues: true, projectType: { include: { attributeDefs: true } } }
+        include: { attributeValues: true, projectType: { include: { attributeDefs: true } }, engagementTypes: true }
     })
     if (project === null) throw new ApiError(404, 'Project Not Found');
     return project
@@ -173,6 +166,26 @@ export async function updateProjectType(prisma: PrismaClient, id: string, projec
         data: {
             projectTypeId: projectTypeId,
             attributeValues: { deleteMany: {} }
+        }
+    });
+}
+
+// Add an engagement type
+export async function addEngagementType(prisma: PrismaClient, workdayId: string, engagementType: string) {
+    return await prisma.project.update({
+        where: { workdayId },
+        data: {
+            engagementTypes: { connect: { name: engagementType } }
+        }
+    });
+}
+
+// Remove and engagement type
+export async function removeEngagementType(prisma: PrismaClient, workdayId: string, engagementType: string) {
+    return await prisma.project.update({
+        where: { workdayId },
+        data: {
+            engagementTypes: { disconnect: { name: engagementType } }
         }
     });
 }

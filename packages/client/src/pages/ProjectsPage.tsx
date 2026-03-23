@@ -80,18 +80,34 @@ export default function ProjectsPage() {
       {selectedType && selectedType.attributeDefs.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted/50 rounded-md border">
           <span className="text-sm text-muted-foreground">Filter by attribute:</span>
-          {selectedType.attributeDefs.map(attr => (
+          {selectedType.attributeDefs.map(attr => {
+            const ops = attr.dataType === 'number'
+              ? [{ value: 'eq', label: '=' }, { value: 'gt', label: '>' }, { value: 'lt', label: '<' }]
+              : attr.dataType === 'date'
+              ? [{ value: 'after', label: 'after' }, { value: 'before', label: 'before' }]
+              : [{ value: 'contains', label: 'contains' }, { value: 'eq', label: '=' }]
+            const defaultOp = ops[0].value
+            const current = filters.attr[attr.label] ?? { op: defaultOp, value: '' }
+            return (
             <div key={attr.label} className="flex items-center gap-1.5">
               <label className="text-sm">{attr.label}</label>
+              <Select value={current.op} onValueChange={op => handleAttr(attr.label, op, current.value)}>
+                <SelectTrigger className="w-28 h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ops.map(op => <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Input
                 className="w-32 h-8 text-sm"
-                type={attr.dataType === 'number' ? 'number' : 'text'}
-                value={filters.attr[attr.label] ?? ''}
-                onChange={e => handleAttr(attr.label, e.target.value)}
+                type={attr.dataType === 'number' ? 'number' : attr.dataType === 'date' ? 'date' : 'text'}
+                value={current.value}
+                onChange={e => handleAttr(attr.label, current.op, e.target.value)}
                 placeholder={attr.dataType}
               />
             </div>
-          ))}
+          )})}
         </div>
       )}
 

@@ -2,6 +2,7 @@ import express, { RequestHandler } from 'express'
 import cors from 'cors'
 import projectRouter from './routes/projects.js'
 import projectTypeRouter from './routes/project-types.js'
+import engagementRouter from './routes/engagement-types.js'
 import adminRouter from './routes/admin.js'
 import errorHandler from './errors/error-handler.js'
 import { requireAdmin } from './middleware/auth.js'
@@ -21,6 +22,7 @@ function createApp(auth: RequestHandler) {
     // Routes for API endpoints
     app.use('/api/projects', projectRouter);
     app.use('/api/project-types', projectTypeRouter);
+    app.use('/api/engagements', engagementRouter);
     // Admin route protected with requireAdmin
     app.use('/api/admin', requireAdmin, adminRouter);
 

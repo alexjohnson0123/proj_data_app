@@ -125,7 +125,7 @@ describe('Projects', () => {
         });
 
         it('Should return project with Seat Count == 5000', async () => {
-            const res = await request(app).get('/api/projects?attr=Seat Count:5000');
+            const res = await request(app).get('/api/projects?attr=Seat Count:eq:5000');
             expect(res).toHaveStatus(200);
             expect(res.body).toHaveLength(2);
         });
@@ -642,5 +642,9 @@ describe('Project Types', () => {
             const res = await request(app).delete('/api/project-types/Venues/attributes/Seat Count');
             expect(res).toHaveStatus(403);
         });
+    });
+
+    describe('Engagement Types', () => {
+        // TODO
     });
 });

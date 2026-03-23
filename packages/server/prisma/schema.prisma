@@ -13,6 +13,12 @@ enum DataType {
   date
 }
 
+model EngagementType {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  projects Project[]
+}
+
 model ProjectType {
   id            Int                   @id @default(autoincrement())
   name          String                @unique
@@ -24,7 +30,6 @@ model AttributeDefinition {
   id              Int              @id @default(autoincrement())
   label           String
   dataType        DataType
-  required        Boolean          @default(false)
   projectTypeId   Int
   projectType     ProjectType      @relation(fields: [projectTypeId], references: [id])
   attributeValues AttributeValue[]
@@ -42,6 +47,7 @@ model Project {
   region          String?
   description     String?
   startDate       DateTime?
+  engagementTypes EngagementType[]
   projectTypeId   Int?
   projectType     ProjectType?     @relation(fields: [projectTypeId], references: [id])
   attributeValues AttributeValue[]

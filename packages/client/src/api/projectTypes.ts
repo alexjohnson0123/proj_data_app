@@ -17,3 +17,25 @@ export async function createProjectType(data: ProjectTypeInput): Promise<Project
         body: JSON.stringify(data),
     })
 }
+
+export async function renameProjectType(oldName: string, newName: string): Promise<ProjectType> {
+    return apiFetch<ProjectType>(`/api/project-types/${encodeURIComponent(oldName)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName }),
+    })
+}
+
+export async function addAttributeDef(typeName: string, data: AttributeDefInput): Promise<void> {
+    return apiFetch(`/api/project-types/${encodeURIComponent(typeName)}/attributes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+}
+
+export async function deleteAttributeDef(typeName: string, label: string): Promise<void> {
+    return apiFetch(`/api/project-types/${encodeURIComponent(typeName)}/attributes/${encodeURIComponent(label)}`, {
+        method: 'DELETE',
+    })
+}

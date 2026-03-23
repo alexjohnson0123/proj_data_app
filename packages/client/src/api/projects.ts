@@ -6,7 +6,7 @@ interface ProjectFilters {
     client?: string
     sphere?: string
     projectType?: string
-    attr?: Record<string, string>
+    attr?: Record<string, { op: string; value: string }>
 }
 
 export async function getProjects(filters: ProjectFilters = {}): Promise<Project[]> {
@@ -17,8 +17,8 @@ export async function getProjects(filters: ProjectFilters = {}): Promise<Project
     if (sphere) params.set('sphere', sphere)
     if (projectType) params.set('projectType', projectType)
     if (attr) {
-        for (const [label, value] of Object.entries(attr)) {
-            if (value !== undefined && value !== '') params.append('attr', `${label}:${value}`)
+        for (const [label, { op, value }] of Object.entries(attr)) {
+            if (value !== '') params.append('attr', `${label}:${op}:${value}`)
         }
     }
     const qs = params.toString()
@@ -54,5 +54,17 @@ export async function updateAttribute(id: string, oldName: string, name: string,
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, value }),
+    })
+}
+
+export async function addEngagementType(id: string, engagementTypeName: string): Promise<void> {
+    return apiFetch(`/api/projects/${id}/engagementTypes/${encodeURIComponent(engagementTypeName)}`, {
+        method: 'POST',
+    })
+}
+
+export async function removeEngagementType(id: string, engagementTypeName: string): Promise<void> {
+    return apiFetch(`/api/projects/${id}/engagementTypes/${encodeURIComponent(engagementTypeName)}`, {
+        method: 'DELETE',
     })
 }

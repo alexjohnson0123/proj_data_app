@@ -4,7 +4,6 @@ export interface AttributeDefinition {
     id: number
     label: string
     dataType: DataType
-    required: boolean
     projectTypeId: number
 }
 
@@ -35,9 +34,15 @@ export interface Project {
     projectTypeId: number | null
     projectType: ProjectType | null
     attributeValues?: AttributeValue[]
+    engagementTypes?: EngagementType[]
 }
 
 export interface ProjectsMeta {
     clients: string[]
     spheres: string[]
+}
+
+export interface EngagementType {
+    id: number
+    name: string
 }

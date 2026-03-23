@@ -11,7 +11,7 @@ export async function getProjectTypeByName(prisma: PrismaClient, name: string) {
     return projectType;
 }
 
-export async function createProjectType(prisma: PrismaClient, name: string, attributes: { label: string, dataType: DataType, required?: boolean }[]) {
+export async function createProjectType(prisma: PrismaClient, name: string, attributes: { label: string, dataType: DataType }[]) {
     return await prisma.projectType.create({ data: { name, attributeDefs: { create: attributes } } });
 }
 

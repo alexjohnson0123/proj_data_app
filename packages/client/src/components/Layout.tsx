@@ -30,6 +30,16 @@ export default function Layout() {
         >
           Project Types
         </NavLink>
+        <NavLink
+          to="/engagement-types"
+          className={({ isActive }) =>
+            isActive
+              ? 'text-sm font-medium text-foreground'
+              : 'text-sm text-muted-foreground hover:text-foreground transition-colors'
+          }
+        >
+          Engagement Types
+        </NavLink>
       </nav>
       <main className="p-6 max-w-6xl mx-auto">
         <Outlet />

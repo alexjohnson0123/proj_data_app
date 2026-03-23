@@ -10,7 +10,7 @@ export interface Filters {
   client: string
   sphere: string
   projectType: string
-  attr: Record<string, string>
+  attr: Record<string, { op: string; value: string }>
 }
 
 const EMPTY_FILTERS: Filters = { q: '', client: '', sphere: '', projectType: '', attr: {} }
@@ -43,8 +43,8 @@ export function useProjectFilters() {
     })
   }
 
-  function handleAttr(label: string, value: string) {
-    setFilters(f => ({ ...f, attr: { ...f.attr, [label]: value } }))
+  function handleAttr(label: string, op: string, value: string) {
+    setFilters(f => ({ ...f, attr: { ...f.attr, [label]: { op, value } } }))
   }
 
   function clearFilters() {

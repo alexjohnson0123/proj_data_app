@@ -5,7 +5,6 @@ const dataTypeSchema = z.enum(['string', 'number', 'date']);
 export const attributeDefSchema = z.object({
     label: z.string(),
     dataType: dataTypeSchema,
-    required: z.boolean().optional()
 });
 export type AttributeDefInput = z.infer<typeof attributeDefSchema>;
 
@@ -34,3 +33,6 @@ export type AttributeValueInput = z.infer<typeof attributeValueSchema>;
 
 export const nameSchema = z.object({ name: z.string() });
 export type NameInput = z.infer<typeof nameSchema>;
+
+export const engagementTypeSchema = z.object({ name: z.string() });
+export type EngagementTypeInput = z.infer<typeof engagementTypeSchema>;
